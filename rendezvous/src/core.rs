@@ -68,7 +68,7 @@ impl Aimd {
     }
 }
 
-pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize) {
+pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize, zipf_s: f64) {
     if s.is_empty() {
         return;
     }
@@ -85,7 +85,7 @@ pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize) 
 
     let mut rng = rand::rng();
 
-    let zipf = Zipf::new(100000.0, 0.1).unwrap();
+    let zipf = Zipf::new(100000.0, zipf_s).unwrap();
     for _ in 0..n {
         let t = zipf.sample(&mut rng) as u64;
         run_test(s, aimd, t, &mut rng);
@@ -171,6 +171,6 @@ fn foo() {
     servers.insert(s(8, 1.0, 0.05));
     servers.insert(s(9, 0.01, 0.25));
 
-    run_load_inner(&mut servers, aimd, 10000);
+    run_load_inner(&mut servers, aimd, 10000, 0.9);
     dbg!(&servers);
 }

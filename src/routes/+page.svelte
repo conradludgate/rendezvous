@@ -5,6 +5,7 @@
 
 	import { onMount } from "svelte";
 	import init from "rendezvous";
+  import Zipf from "./Zipf.svelte";
 
   let initialised = $state(false);
 	onMount(async () => {
@@ -16,13 +17,14 @@
 </script>
 
 <svelte:head>
-  <title>Home</title>
-  <meta name="description" content="Svelte demo app" />
+  <title>Rendezvous Playground</title>
+  <meta name="description" content="A loadbalancer demo that features rendezvous hashing and health info for routing preference" />
 </svelte:head>
 
 <section>
   {#if initialised}
     <Aimd />
+    <Zipf />
     <Run bind:version />
     <Servers {version} />
   {/if}

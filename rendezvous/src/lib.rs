@@ -19,7 +19,9 @@ thread_local! {
         max: 1.0,
         inc: 0.01,
         dec: 0.99,
-    })}
+    })};
+
+    static S: Cell<f64> = const { Cell::new(0.9) };
 }
 
 #[wasm_bindgen]
@@ -74,8 +76,13 @@ pub fn update_aimd(inc: f64, dec: f64) {
 }
 
 #[wasm_bindgen]
+pub fn update_zipf_s(s: f64) {
+    S.set(s);
+}
+
+#[wasm_bindgen]
 pub fn run_load(n: usize) {
     SERVERS.with_borrow_mut(|s| {
-        run_load_inner(s, AIMD.get(), n);
+        run_load_inner(s, AIMD.get(), n, S.get());
     });
 }
