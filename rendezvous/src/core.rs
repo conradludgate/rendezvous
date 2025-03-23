@@ -45,7 +45,6 @@ impl Server {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Aimd {
     pub min: f64,
@@ -77,6 +76,10 @@ impl Aimd {
 }
 
 pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize) {
+    if s.is_empty() {
+        return;
+    }
+
     s.iter_mut().for_each(|(_, s)| {
         while s.load.len() >= LOAD_BUFFER {
             s.load.pop_front();

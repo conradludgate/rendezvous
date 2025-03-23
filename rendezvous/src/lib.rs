@@ -59,8 +59,13 @@ pub fn view_server_health(i: &ServerKey) -> f64 {
 }
 
 #[wasm_bindgen]
-pub fn update_aimd(aimd: Aimd) {
-    AIMD.set(aimd);
+pub fn update_aimd(inc: f64, dec: f64) {
+    AIMD.set(Aimd {
+        inc,
+        dec,
+        min: 0.01,
+        max: 1.0,
+    });
 }
 
 #[wasm_bindgen]
