@@ -5,6 +5,7 @@
   let { key } = $props();
 
   let values = $derived.by(() => view_server_load(key));
+  let errors = $derived(values[values.length - 1].errors);
 
   const width = 500;
   const height = 200;
@@ -26,10 +27,45 @@
   let errorPath = $derived(errorLine(values));
 </script>
 
-<div>
+<div class="data">
+  <span class="errors">{errors}</span>
   <svg {width} {height}>
-    <path d="M 0 0 l {0} {height} l {width} 0 l {0} {-height} l {-width} 0" fill="none" stroke="black" />
+    <path
+      d="
+        M 0 0
+        l {0} {height}
+        l {width} 0
+        l {0} {-height}
+        l {-width} 0
+
+        M {width} {height * 1/5}
+        l {-5} {0}
+
+        M {width} {height * 2/5}
+        l {-5} {0}
+
+        M {width} {height * 3/5}
+        l {-5} {0}
+
+        M {width} {height * 4/5}
+        l {-5} {0}
+      "
+      fill="none"
+      stroke="black"
+    />
     <path d={totalPath} fill="none" stroke="black" />
     <path d={errorPath} fill="none" stroke="red" />
   </svg>
 </div>
+
+<style>
+  .data {
+    position: relative;
+  }
+  .data .errors {
+    position: absolute;
+    right: 0.5em;
+    top: 0;
+    color: red;
+  }
+</style>

@@ -5,12 +5,12 @@
 </script>
 
 <div class="server">
+  <ServerStats {key} {version} />
   <button onclick={onremove} aria-label="Delete a server">
     <svg aria-hidden="true" viewBox="0 0 1 1">
       <path d="M0,0.5 L1,0.5" />
     </svg>
   </button>
-  <ServerStats {key} {version} />
 </div>
 
 <style>
