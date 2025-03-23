@@ -59,6 +59,11 @@ pub fn view_server_health(i: &ServerKey) -> f64 {
 }
 
 #[wasm_bindgen]
+pub fn update_server_error_rate(i: &ServerKey, error_rate: f64) {
+    SERVERS.with_borrow_mut(|s| s[*i].error_rate = error_rate)
+}
+
+#[wasm_bindgen]
 pub fn update_aimd(inc: f64, dec: f64) {
     AIMD.set(Aimd {
         inc,

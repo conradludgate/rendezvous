@@ -7,7 +7,7 @@ use foldhash::quality::FixedState;
 use itertools::Itertools;
 use rand::Rng;
 use rand_distr::{Distribution, Zipf};
-use slotmap::{Key, SlotMap};
+use slotmap::SlotMap;
 use wasm_bindgen::prelude::*;
 
 const K: usize = 3;
@@ -56,13 +56,6 @@ pub struct Aimd {
 slotmap::new_key_type! {
     #[wasm_bindgen]
     pub struct ServerKey;
-}
-
-#[wasm_bindgen]
-impl ServerKey {
-    pub fn as_number(&self) -> u64 {
-        self.data().as_ffi()
-    }
 }
 
 impl Aimd {
@@ -128,7 +121,7 @@ fn distr<T: Hash>(servers: &SlotMap<ServerKey, Server>, k: usize, t: &T) -> Vec<
     let mut scores = topk
         .enumerate()
         .map(|(idx, i)| {
-            let order_score = 1.0 / (idx + 1) as f64;
+            let order_score = 0.5 / (idx + 1) as f64;
             let score = order_score * servers[i].health;
             (i, score)
         })
@@ -136,11 +129,11 @@ fn distr<T: Hash>(servers: &SlotMap<ServerKey, Server>, k: usize, t: &T) -> Vec<
 
     // softmax each entry (as a PDF) and calculate the CDF in-place.
     let mut accum = 0.0;
-    let sum = scores.iter().map(|(_, score)| score.exp()).sum::<f64>();
+    let sum = scores.iter().map(|(_, score)| *score).sum::<f64>();
     scores.iter_mut().for_each(|(_i, score)| {
-        let softmax = score.exp() / sum;
+        let p = *score / sum;
 
-        *score = (accum + softmax).clamp(0.0, 1.0);
+        *score = (accum + p).clamp(0.0, 1.0);
         accum = *score;
     });
 

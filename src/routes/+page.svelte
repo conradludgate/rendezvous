@@ -1,13 +1,18 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-
   import Servers from "./Servers.svelte";
+  import Aimd from "./Aimd.svelte";
+  import Run from "./Run.svelte";
 
-  import init, { run_load } from "rendezvous";
+	import { onMount } from "svelte";
+	import init from "rendezvous";
+
+  let initialised = $state(false);
+	onMount(async () => {
+    await init();
+    initialised = true;
+  });
 
   let version = $state(0);
-
-  onMount(init);
 </script>
 
 <svelte:head>
@@ -16,16 +21,11 @@
 </svelte:head>
 
 <section>
-  <button
-    onclick={() => {
-      run_load(100);
-      version = version + 1;
-    }}
-  >
-    Run
-  </button>
-
-  <Servers {version} />
+  {#if initialised}
+    <Aimd />
+    <Run bind:version />
+    <Servers {version} />
+  {/if}
 </section>
 
 <style>

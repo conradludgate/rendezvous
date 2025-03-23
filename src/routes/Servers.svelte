@@ -1,22 +1,20 @@
 <script lang="ts">
   import { add_server, remove_server, ServerKey } from "rendezvous";
-  import { SvelteMap } from "svelte/reactivity";
+  import { SvelteSet } from "svelte/reactivity";
   import ServerStats from "./ServerStats.svelte";
 
   let { version } = $props();
 
-  const servers: SvelteMap<bigint, [ServerKey, number]> = new SvelteMap();
-
-  $inspect(servers);
+  const servers: SvelteSet<ServerKey> = new SvelteSet();
 </script>
 
 <div class="counter">
-  {#each servers as [id, [key, error_rate]] (id)}
+  {#each servers as key (key)}
     <div class="server">
       <button
         onclick={() => {
           remove_server(key);
-          servers.delete(id);
+          servers.delete(key);
         }}
         aria-label="Delete a server"
       >
@@ -24,7 +22,7 @@
           <path d="M0,0.5 L1,0.5" />
         </svg>
       </button>
-      <ServerStats {key} {error_rate} {version} />
+      <ServerStats {key} {version} />
     </div>
   {/each}
 
@@ -33,7 +31,7 @@
       onclick={async () => {
         var key = add_server(0.1);
         console.log(key);
-        servers.set(key.as_number(), [key, 0.1]);
+        servers.add(key);
       }}
       aria-label="Add a new server"
     >
