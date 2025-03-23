@@ -6,8 +6,8 @@
 
   let values = $derived.by(() => view_server_load(key));
 
-  const width = 300;
-  const height = 100;
+  const width = 500;
+  const height = 200;
 
   const x = d3.scaleLinear([0, 100], [0, width]);
   const y = d3.scaleLinear([0, 100], [height, 0]);
@@ -26,7 +26,10 @@
   let errorPath = $derived(errorLine(values));
 </script>
 
-<svg {width} {height}>
-  <path d={totalPath} fill="none" stroke="black" />
-  <path d={errorPath} fill="none" stroke="red" />
-</svg>
+<div>
+  <svg {width} {height}>
+    <path d="M 0 0 l {0} {height} l {width} 0 l {0} {-height} l {-width} 0" fill="none" stroke="black" />
+    <path d={totalPath} fill="none" stroke="black" />
+    <path d={errorPath} fill="none" stroke="red" />
+  </svg>
+</div>

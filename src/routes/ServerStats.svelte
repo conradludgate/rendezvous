@@ -12,26 +12,40 @@
 
 <div>
   {#key version}
-    <span class="stats">
-      Health: {view_server_health(key).toString().substring(0, 4)}<br />
-      <input type="range" bind:value={error_rate} min="0" max="1" step="0.01" style="width: 6em;"/>
-    </span>
-
     <Chart {key} />
   {/key}
+
+  <div class="stats">
+    {#key version}
+      <span class="health">
+        Health: {view_server_health(key).toString().substring(0, 4)}
+      </span>
+    {/key}
+
+    <input
+      class="error"
+      type="range"
+      bind:value={error_rate}
+      min="0"
+      max="1"
+      step="0.01"
+      style="width: 6em;"
+    />
+  </div>
 </div>
 
 <style>
   div {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     font-size: 2rem;
     align-items: center;
   }
 
   .stats {
-    margin-right: 1em;
-    max-width: 8em;
-    text-wrap-mode: nowrap;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
   }
 </style>

@@ -2,81 +2,74 @@
   import { add_server, remove_server, ServerKey } from "rendezvous";
   import { SvelteSet } from "svelte/reactivity";
   import ServerStats from "./ServerStats.svelte";
+  import Server from "./Server.svelte";
 
   let { version } = $props();
 
   const servers: SvelteSet<ServerKey> = new SvelteSet();
 </script>
 
-<div class="counter">
+<div class="servers">
   {#each servers as key (key)}
-    <div class="server">
-      <button
-        onclick={() => {
-          remove_server(key);
-          servers.delete(key);
-        }}
-        aria-label="Delete a server"
-      >
-        <svg aria-hidden="true" viewBox="0 0 1 1">
-          <path d="M0,0.5 L1,0.5" />
-        </svg>
-      </button>
-      <ServerStats {key} {version} />
-    </div>
+    <Server
+      {key}
+      {version}
+      onremove={() => {
+        remove_server(key);
+        servers.delete(key);
+      }}
+    />
   {/each}
 
-  <div class="server">
-    <button
-      onclick={async () => {
-        var key = add_server(0.1);
-        console.log(key);
-        servers.add(key);
-      }}
-      aria-label="Add a new server"
-    >
-      <svg aria-hidden="true" viewBox="0 0 1 1">
-        <path d="M0,0.5 L1,0.5 M0.5,0 L0.5,1" />
-      </svg>
-    </button>
+  <!-- <div class="add_server"> -->
+  <button
+    class="add_server"
+    onclick={async () => {
+      var key = add_server(0.1);
+      console.log(key);
+      servers.add(key);
+    }}
+    aria-label="Add a new server"
+  >
+    <svg aria-hidden="true" viewBox="0 0 1 1">
+      <path d="M0,0.5 L1,0.5 M0.5,0 L0.5,1" />
+    </svg>
+  </button>
 
-    <span> Add Server </span>
-  </div>
+  <!-- <span> Add Server </span> -->
+  <!-- </div> -->
 </div>
 
 <style>
-  .counter {
+  .servers {
     display: flex;
-    flex-direction: column;
-    row-gap: 1em;
+    flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: 2em;
+    column-gap: 2em;
+    align-items: center;
+    justify-content: space-evenly;
 
     border-top: 1px solid rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     margin: 1rem 0;
   }
 
-  .counter button {
-    height: 2em;
-    width: 2em;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    background-color: transparent;
-    touch-action: manipulation;
-    font-size: 2rem;
-  }
-
-  .counter button:hover {
+  .add_server:hover {
     background-color: var(--color-bg-1);
   }
 
-  .counter > .server {
+  .add_server {
+    width: 500px;
+    height: calc(200px);
+    margin-bottom: 1.5em;
+
     display: flex;
     flex-direction: row;
     font-size: 2rem;
+
     align-items: center;
+    justify-content: center;
   }
 
   svg {
