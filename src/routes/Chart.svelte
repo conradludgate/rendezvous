@@ -23,8 +23,15 @@
     .x((_d, index, _data) => x(index))
     .y((d) => y(d.errors));
 
+  const percentY = d3.scaleLinear([0, 1], [height, 0]);
+  let cachedLine = d3
+    .line<Load>()
+    .x((_d, index, _data) => x(index))
+    .y((d) => percentY(d.total === 0 ? 0 : d.cached / d.total));
+
   let totalPath = $derived(totalLine(values));
   let errorPath = $derived(errorLine(values));
+  let cachedPath = $derived(cachedLine(values));
 </script>
 
 <div class="data">
@@ -38,16 +45,16 @@
         l {0} {-height}
         l {-width} 0
 
-        M {width} {height * 1/5}
+        M {width} {(height * 1) / 5}
         l {-5} {0}
 
-        M {width} {height * 2/5}
+        M {width} {(height * 2) / 5}
         l {-5} {0}
 
-        M {width} {height * 3/5}
+        M {width} {(height * 3) / 5}
         l {-5} {0}
 
-        M {width} {height * 4/5}
+        M {width} {(height * 4) / 5}
         l {-5} {0}
       "
       fill="none"
@@ -55,6 +62,7 @@
     />
     <path d={totalPath} fill="none" stroke="black" />
     <path d={errorPath} fill="none" stroke="red" />
+    <path d={cachedPath} fill="none" stroke="green" />
   </svg>
 </div>
 

@@ -1,6 +1,7 @@
 use core::{Aimd, LOAD_BUFFER, Load, Server, ServerKey, run_load_inner};
 use std::cell::{Cell, RefCell};
 
+use linked_hash_map::LinkedHashMap;
 use slotmap::SlotMap;
 use wasm_bindgen::prelude::*;
 
@@ -35,10 +36,12 @@ pub fn add_server(error_rate: f64) -> ServerKey {
                 Load {
                     total: 0,
                     errors: 0,
+                    cached: 0,
                 },
                 LOAD_BUFFER,
             )
             .collect(),
+            cache: LinkedHashMap::new(),
         })
     })
 }

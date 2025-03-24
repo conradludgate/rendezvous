@@ -5,21 +5,26 @@ use std::{
 
 use foldhash::quality::FixedState;
 use itertools::Itertools;
+use linked_hash_map::LinkedHashMap;
 use rand::Rng;
 use rand_distr::{Distribution, Zipf};
 use slotmap::SlotMap;
 use wasm_bindgen::prelude::*;
 
+const CACHE_SIZE: usize = 1000;
 const K: usize = 3;
 pub const LOAD_BUFFER: usize = 100;
 
 #[derive(Debug)]
 pub struct Server {
+    // config
     pub seed: u64,
-    pub health: f64,
     pub error_rate: f64,
-    /// (total, errors)
+
+    // properties
+    pub health: f64,
     pub load: VecDeque<Load>,
+    pub cache: LinkedHashMap<u64, ()>,
 }
 
 #[wasm_bindgen]
@@ -27,10 +32,11 @@ pub struct Server {
 pub struct Load {
     pub total: u32,
     pub errors: u32,
+    pub cached: u32,
 }
 
 impl Server {
-    fn run(&mut self, aimd: Aimd, rng: &mut impl Rng) {
+    fn run(&mut self, aimd: Aimd, rng: &mut impl Rng, t: u64) {
         let load = self.load.back_mut().unwrap();
 
         let error = rng.random_bool(self.error_rate);
@@ -41,6 +47,15 @@ impl Server {
         } else {
             self.health = aimd.inc(self.health);
             load.total += 1;
+
+            if self.cache.get_refresh(&t).is_some() {
+                load.cached += 1;
+            } else {
+                if self.cache.len() == CACHE_SIZE {
+                    self.cache.pop_front();
+                }
+                self.cache.insert(t, ());
+            }
         }
     }
 }
@@ -74,12 +89,11 @@ pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize, 
     }
 
     s.iter_mut().for_each(|(_, s)| {
-        while s.load.len() >= LOAD_BUFFER {
-            s.load.pop_front();
-        }
+        s.load.pop_front();
         s.load.push_back(Load {
             total: 0,
             errors: 0,
+            cached: 0,
         })
     });
 
@@ -92,10 +106,10 @@ pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize, 
     }
 }
 
-fn run_test<T: Hash>(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, t: T, rng: &mut impl Rng) {
+fn run_test(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, t: u64, rng: &mut impl Rng) {
     let distr = distr(s, K, &t);
     let choice = choose_from_distr(&distr, rng);
-    s[*choice].run(aimd, rng);
+    s[*choice].run(aimd, rng, t);
 }
 
 fn choose_from_distr<'a, T>(distr: &'a [(T, f64)], rng: &mut impl Rng) -> &'a T {
@@ -127,18 +141,16 @@ fn distr<T: Hash>(servers: &SlotMap<ServerKey, Server>, k: usize, t: &T) -> Vec<
         })
         .collect::<Vec<_>>();
 
-    // softmax each entry (as a PDF) and calculate the CDF in-place.
+    // calculate the CDF in-place.
     let mut accum = 0.0;
-    let sum = scores.iter().map(|(_, score)| *score).sum::<f64>();
-    scores.iter_mut().for_each(|(_i, score)| {
-        let p = *score / sum;
-
-        *score = (accum + p).clamp(0.0, 1.0);
-        accum = *score;
+    scores.iter_mut().for_each(|(_i, p)| {
+        *p += accum;
+        accum = *p;
     });
 
-    // to account for floating point errors
-    scores.last_mut().unwrap().1 = 1.0;
+    // scale to 0..1
+    let last = scores.last().unwrap().1;
+    scores.iter_mut().for_each(|(_i, p)| *p /= last);
 
     scores
 }
@@ -150,6 +162,7 @@ fn foo() {
         health,
         error_rate,
         load: VecDeque::new(),
+        cache: LinkedHashMap::new(),
     };
 
     let aimd = Aimd {
