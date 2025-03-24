@@ -1,7 +1,6 @@
 <script lang="ts">
   import { add_server, remove_server, ServerKey } from "rendezvous";
   import { SvelteSet } from "svelte/reactivity";
-  import ServerStats from "./ServerStats.svelte";
   import Server from "./Server.svelte";
 
   let { version } = $props();

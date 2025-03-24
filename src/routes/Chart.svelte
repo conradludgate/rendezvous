@@ -15,18 +15,18 @@
 
   let totalLine = d3
     .line<Load>()
-    .x((_d, index, _data) => x(index))
+    .x((_d, index) => x(index))
     .y((d) => y(d.total));
 
   let errorLine = d3
     .line<Load>()
-    .x((_d, index, _data) => x(index))
+    .x((_d, index) => x(index))
     .y((d) => y(d.errors));
 
   const percentY = d3.scaleLinear([0, 1], [height, 0]);
   let cachedLine = d3
     .line<Load>()
-    .x((_d, index, _data) => x(index))
+    .x((_d, index) => x(index))
     .y((d) => percentY(d.total === 0 ? 0 : d.cached / d.total));
 
   let totalPath = $derived(totalLine(values));

@@ -1,38 +1,18 @@
-# sv
+# rendezvous-playground
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+I'm designing a load balancer at the moment. There's a few properties I care about
+1. Automatic load reduction when a server is unhealthy
+2. High cache hit rate
+3. A/B testing functionality
 
-## Creating a project
+I thought I could use some combination of rendezvous hashing + a self-reported health status
+to get all 3.
 
-If you're seeing this, you've probably already done this step. Congrats!
+This wasm-based webapp is a simulator of how it behaves with different configurations.
 
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+* Server health is determined using an AIMD, triggered by errors. AIMD values are configurable.
+* Server errors are random based on the defined error rate slider.
+* Servers have a LRU cache of 1000 items.
+* Load is generated using a Zipf distribution of 100,000 items. The power-factor `s` is configurable.
+* Servers can be added and removed on demand. The black line is total load, the red line is errors, the green line is cache hit-rate.
+* Running the simulation can be done by hitting the "play/pause" button. Tune the RPM and steps accordingly to speed up or slow down as desired.

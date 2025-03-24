@@ -7,7 +7,7 @@ use foldhash::quality::FixedState;
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
 use rand::Rng;
-use rand_distr::{Distribution, Zipf};
+use rand_distr::{Distribution, Uniform, Zipf};
 use slotmap::SlotMap;
 use wasm_bindgen::prelude::*;
 
@@ -108,82 +108,64 @@ pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize, 
 
 fn run_test(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, t: u64, rng: &mut impl Rng) {
     let distr = distr(s, K, &t);
-    let choice = choose_from_distr(&distr, rng);
-    s[*choice].run(aimd, rng, t);
+    let choice = distr.sample(rng);
+    s[choice].run(aimd, rng, t);
 }
 
-fn choose_from_distr<'a, T>(distr: &'a [(T, f64)], rng: &mut impl Rng) -> &'a T {
-    let x = rng.random_range(0.0..1.0);
-    for i in distr {
-        if x < i.1 {
-            return &i.0;
-        }
-    }
-    unreachable!()
-}
-
-fn distr<T: Hash>(servers: &SlotMap<ServerKey, Server>, k: usize, t: &T) -> Vec<(ServerKey, f64)> {
-    let topk = servers
-        .iter()
-        .map(|(i, s)| {
-            let hash = FixedState::with_seed(s.seed).hash_one(t);
-            (i, hash)
-        })
-        .k_largest_by_key(k, |(_i, hash)| *hash)
-        .map(|(i, _hash)| i);
-
-    let mut scores = topk
+fn distr<T: Hash>(servers: &SlotMap<ServerKey, Server>, k: usize, t: &T) -> Distr<ServerKey> {
+    let weights = rendezvous_hash(servers, k, t)
         .enumerate()
         .map(|(idx, i)| {
+            // combine the order placement
+            // with the health value
             let order_score = 0.5 / (idx + 1) as f64;
             let score = order_score * servers[i].health;
             (i, score)
         })
         .collect::<Vec<_>>();
 
+    get_cdf(weights)
+}
+
+fn rendezvous_hash<T: Hash>(
+    servers: &SlotMap<ServerKey, Server>,
+    k: usize,
+    t: &T,
+) -> impl Iterator<Item = ServerKey> {
+    servers
+        .iter()
+        // hash the key with each server seed
+        .map(|(i, s)| (i, FixedState::with_seed(s.seed).hash_one(t)))
+        // get the servers with the k largest hashes
+        .k_largest_relaxed_by_key(k, |(_i, hash)| *hash)
+        // discard the hash
+        .map(|(i, _hash)| i)
+}
+
+fn get_cdf<T>(mut weights: Vec<(T, f64)>) -> Distr<T> {
     // calculate the CDF in-place.
     let mut accum = 0.0;
-    scores.iter_mut().for_each(|(_i, p)| {
+    weights.iter_mut().for_each(|(_i, p)| {
         *p += accum;
         accum = *p;
     });
 
-    // scale to 0..1
-    let last = scores.last().unwrap().1;
-    scores.iter_mut().for_each(|(_i, p)| *p /= last);
-
-    scores
+    let last = weights.last().unwrap().1;
+    Distr {
+        sampler: Uniform::new(0.0, last).unwrap(),
+        distr: weights,
+    }
 }
 
-#[test]
-fn foo() {
-    let s = |seed, health, error_rate| Server {
-        seed,
-        health,
-        error_rate,
-        load: VecDeque::new(),
-        cache: LinkedHashMap::new(),
-    };
+struct Distr<T> {
+    sampler: Uniform<f64>,
+    distr: Vec<(T, f64)>,
+}
 
-    let aimd = Aimd {
-        min: 0.01,
-        max: 1.0,
-        inc: 0.01,
-        dec: 0.9,
-    };
-
-    let mut servers = SlotMap::<ServerKey, Server>::with_key();
-    servers.insert(s(0, 1.0, 0.05));
-    servers.insert(s(1, 1.0, 0.05));
-    servers.insert(s(2, 1.0, 0.05));
-    servers.insert(s(3, 1.0, 0.05));
-    servers.insert(s(4, 1.0, 0.05));
-    servers.insert(s(5, 1.0, 0.05));
-    servers.insert(s(6, 1.0, 0.05));
-    servers.insert(s(7, 1.0, 0.05));
-    servers.insert(s(8, 1.0, 0.05));
-    servers.insert(s(9, 0.01, 0.25));
-
-    run_load_inner(&mut servers, aimd, 10000, 0.9);
-    dbg!(&servers);
+impl<T: Clone> Distribution<T> for Distr<T> {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> T {
+        let sample = self.sampler.sample(rng);
+        let i = self.distr.partition_point(|(_, weight)| weight <= &sample);
+        self.distr[i].0.clone()
+    }
 }
