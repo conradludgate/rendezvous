@@ -101,15 +101,16 @@ pub fn run_load_inner(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, n: usize, 
 
     let zipf = Zipf::new(100000.0, zipf_s).unwrap();
     for _ in 0..n {
-        let t = zipf.sample(&mut rng) as u64;
-        run_test(s, aimd, t, &mut rng);
+        let input = zipf.sample(&mut rng) as u64;
+        let server = select(s, input, &mut rng);
+        server.run(aimd, &mut rng, input);
     }
 }
 
-fn run_test(s: &mut SlotMap<ServerKey, Server>, aimd: Aimd, t: u64, rng: &mut impl Rng) {
+fn select<'a>(s: &'a mut SlotMap<ServerKey, Server>, t: u64, rng: &mut impl Rng) -> &'a mut Server {
     let distr = distr(s, K, &t);
     let choice = distr.sample(rng);
-    s[choice].run(aimd, rng, t);
+    &mut s[choice]
 }
 
 fn distr<T: Hash>(servers: &SlotMap<ServerKey, Server>, k: usize, t: &T) -> Distr<ServerKey> {
